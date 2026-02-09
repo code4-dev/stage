@@ -1,0 +1,112 @@
+<div class="projects-container">
+  <div class="page-header">
+    <h2>Mes Projets</h2>
+    <a routerLink="/projects/new" class="btn btn-primary">+ Nouveau Projet</a>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="filters-section">
+    <input 
+      type="text" 
+      placeholder="Rechercher un projet..." 
+      class="search-input"
+      (input)="onSearchChange($event.target.value)"
+      [value]="searchText">
+    
+    <div class="filter-buttons">
+      <button 
+        class="filter-btn" 
+        [class.active]="filterStatus === 'all'"
+        (click)="onFilterChange('all')">
+        Tous ({{ projects.length }})
+      </button>
+      <button 
+        class="filter-btn" 
+        [class.active]="filterStatus === 'planification'"
+        (click)="onFilterChange('planification')">
+        Planification
+      </button>
+      <button 
+        class="filter-btn" 
+        [class.active]="filterStatus === 'en-cours'"
+        (click)="onFilterChange('en-cours')">
+        En cours
+      </button>
+      <button 
+        class="filter-btn" 
+        [class.active]="filterStatus === 'termine'"
+        (click)="onFilterChange('termine')">
+        Terminés
+      </button>
+      <button 
+        class="filter-btn" 
+        [class.active]="filterStatus === 'suspendu'"
+        (click)="onFilterChange('suspendu')">
+        Suspendus
+      </button>
+    </div>
+  </div>
+
+  <!-- Projects Table -->
+  <div class="projects-table-container" *ngIf="filteredProjects.length > 0; else noProjects">
+    <table class="projects-table">
+      <thead>
+        <tr>
+          <th>Nom du Projet</th>
+          <th>Description</th>
+          <th>Statut</th>
+          <th>Échéance</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let project of filteredProjects">
+          <td class="project-name">
+            <strong>{{ project.name }}</strong>
+          </td>
+          <td class="project-description">{{ project.description }}</td>
+          <td>
+            <span [ngClass]="'status ' + getStatusClass(project.status)">
+              {{ getStatusLabel(project.status) }}
+            </span>
+          </td>
+          <td>{{ project.dueDate | date:'dd/MM/yyyy' }}</td>
+          <td class="actions-cell">
+            <div class="action-buttons">
+              <a 
+                [routerLink]="['/projects', project.id, 'followups']" 
+                class="btn btn-small btn-info"
+                title="Voir les suivis">
+                Suivis
+              </a>
+              <a 
+                [routerLink]="['/projects', project.id, 'edit']" 
+                class="btn btn-small btn-secondary"
+                title="Modifier le projet">
+                Modifier
+              </a>
+              <button 
+                class="btn btn-small btn-danger"
+                (click)="deleteProject(project.id)"
+                title="Supprimer le projet">
+                Supprimer
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty State -->
+  <ng-template #noProjects>
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>Aucun projet trouvé</h3>
+      <p *ngIf="filterStatus !== 'all' || searchText">
+        Essayez de modifier vos critères de recherche
+      </p>
+      <a routerLink="/projects/new" class="btn btn-primary">Créer votre premier projet</a>
+    </div>
+  </ng-template>
+</div>

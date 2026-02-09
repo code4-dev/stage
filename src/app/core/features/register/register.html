@@ -1,0 +1,145 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-body">
+          <h1 class="card-title text-center mb-3">Créer un Compte</h1>
+          <p class="text-center text-muted mb-4">Enregistrez-vous pour accéder à l'application</p>
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+            <!-- Nom Complet -->
+            <div class="mb-3">
+              <label for="fullName" class="form-label">Nom Complet *</label>
+              <input
+                type="text"
+                id="fullName"
+                formControlName="fullName"
+                class="form-control"
+                [ngClass]="{'is-invalid': submitted && f['fullName'].invalid}"
+                placeholder="Votre nom complet"
+              />
+              @if (submitted && f['fullName'].invalid) {
+                <div class="invalid-feedback d-block">
+                  {{ getErrorMessage('fullName') }}
+                </div>
+              }
+            </div>
+            <!-- Email -->
+            <div class="mb-3">
+              <label for="email" class="form-label">Email *</label>
+              <input
+                type="email"
+                id="email"
+                formControlName="email"
+                class="form-control"
+                [ngClass]="{'is-invalid': submitted && f['email'].invalid}"
+                placeholder="votre.email@example.com"
+              />
+              @if (submitted && f['email'].invalid) {
+                <div class="invalid-feedback d-block">
+                  {{ getErrorMessage('email') }}
+                </div>
+              }
+            </div>
+            <!-- Mot de Passe -->
+            <div class="mb-3">
+              <label for="password" class="form-label">Mot de Passe Sécurisé *</label>
+              <input
+                type="password"
+                id="password"
+                formControlName="password"
+                class="form-control"
+                [ngClass]="{'is-invalid': submitted && f['password'].invalid}"
+                placeholder="Créez un mot de passe fort"
+              />
+              @if (registerForm.get('password')?.value) {
+                <div class="my-2">
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" role="progressbar"
+                      [style.width.%]="(passwordStrength + 1) * 16.666"
+                      [style.background-color]="passwordStrengthColor">
+                    </div>
+                  </div>
+                  <div class="small mt-1" [style.color]="passwordStrengthColor">
+                    Force: {{ passwordStrengthLabel }}
+                  </div>
+                </div>
+                <ul class="list-group list-group-flush mb-2">
+                  <li class="list-group-item p-1 border-0" [ngClass]="{'text-success': passwordRequirements.minLength, 'text-danger': !passwordRequirements.minLength}">
+                    <span>{{ passwordRequirements.minLength ? '✓' : '✗' }}</span> 8-128 caractères
+                  </li>
+                  <li class="list-group-item p-1 border-0" [ngClass]="{'text-success': passwordRequirements.hasUppercase, 'text-danger': !passwordRequirements.hasUppercase}">
+                    <span>{{ passwordRequirements.hasUppercase ? '✓' : '✗' }}</span> Au moins une majuscule (A-Z)
+                  </li>
+                  <li class="list-group-item p-1 border-0" [ngClass]="{'text-success': passwordRequirements.hasLowercase, 'text-danger': !passwordRequirements.hasLowercase}">
+                    <span>{{ passwordRequirements.hasLowercase ? '✓' : '✗' }}</span> Au moins une minuscule (a-z)
+                  </li>
+                  <li class="list-group-item p-1 border-0" [ngClass]="{'text-success': passwordRequirements.hasNumber, 'text-danger': !passwordRequirements.hasNumber}">
+                    <span>{{ passwordRequirements.hasNumber ? '✓' : '✗' }}</span> Au moins un chiffre (0-9)
+                  </li>
+                  <li class="list-group-item p-1 border-0" [ngClass]="{'text-success': passwordRequirements.hasSpecial, 'text-danger': !passwordRequirements.hasSpecial}">
+                    <span>{{ passwordRequirements.hasSpecial ? '✓' : '✗' }}</span> Au moins un caractère spécial (!@#$%^&*)
+                  </li>
+                  <li class="list-group-item p-1 border-0" [ngClass]="{'text-success': passwordRequirements.noRepetition, 'text-danger': !passwordRequirements.noRepetition}">
+                    <span>{{ passwordRequirements.noRepetition ? '✓' : '✗' }}</span> Pas de répétition (aaa, 111, ...)
+                  </li>
+                </ul>
+              }
+              @if (submitted && f['password'].invalid) {
+                <div class="invalid-feedback d-block">
+                  {{ getErrorMessage('password') }}
+                </div>
+              }
+            </div>
+            <!-- Confirmer Mot de Passe -->
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Confirmer le Mot de Passe *</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                formControlName="confirmPassword"
+                class="form-control"
+                [ngClass]="{'is-invalid': submitted && (f['confirmPassword'].invalid || registerForm.get('password')?.value !== registerForm.get('confirmPassword')?.value)}"
+                placeholder="Confirmez votre mot de passe"
+              />
+              @if (submitted && (f['confirmPassword'].invalid || registerForm.get('password')?.value !== registerForm.get('confirmPassword')?.value)) {
+                <div class="invalid-feedback d-block">
+                  {{ getErrorMessage('confirmPassword') }}
+                </div>
+              }
+            </div>
+            <!-- Rôle -->
+            <div class="mb-3">
+              <label for="role" class="form-label">Rôle *</label>
+              <select
+                id="role"
+                formControlName="role"
+                class="form-select"
+              >
+                <option value="chef">Chef de Projet</option>
+                <option value="Administrateur">Administrateur</option>
+                <option value="Pilote Qualité">Pilote Qualité</option>
+              </select>
+            </div>
+            <!-- Bouton Créer -->
+            <button
+              type="submit"
+              class="btn btn-primary w-100"
+              [disabled]="loading"
+            >
+              @if (!loading) {
+                <span>Créer un Compte</span>
+              }
+              @if (loading) {
+                <span>Création en cours...</span>
+              }
+            </button>
+          </form>
+          <div class="text-center mt-3">
+            <p>Vous avez déjà un compte ? <a routerLink="/login">Se connecter</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+ 
