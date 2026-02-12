@@ -4,7 +4,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'chef' | 'admin' | 'employee';
+  role: 'chef' | 'admin' | 'pilote';
 }
 
 @Injectable({

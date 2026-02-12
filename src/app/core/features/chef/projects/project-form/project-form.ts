@@ -49,16 +49,21 @@ export class ProjectForm implements OnInit {
   }
 
   private loadProject(id: string): void {
-    const project = this.projectService.getProjectById(id);
-    if (project) {
-      const dueDateStr = new Date(project.dueDate).toISOString().split('T')[0];
-      this.projectForm.patchValue({
-        name: project.name,
-        description: project.description,
-        status: project.status,
-        dueDate: dueDateStr
-      });
-    }
+    // MODIFICATION : On appelle le service qui fait un appel HTTP GET
+    this.projectService.getProjectById(id).subscribe({
+      next: (project) => {
+        if (project) {
+          const dueDateStr = new Date(project.dueDate).toISOString().split('T')[0];
+          this.projectForm.patchValue({
+            name: project.name,
+            description: project.description,
+            status: project.status,
+            dueDate: dueDateStr
+          });
+        }
+      },
+      error: (err) => console.error("Erreur de chargement", err)
+    });
   }
 
   onSubmit(): void {
@@ -76,13 +81,18 @@ export class ProjectForm implements OnInit {
       chefId: '1'
     };
 
+// MODIFICATION : On s'abonne (.subscribe) pour attendre que le Back enregistre
     if (this.isEditing && this.projectId) {
-      this.projectService.updateProject(this.projectId, projectData);
+      this.projectService.updateProject(this.projectId, projectData).subscribe({
+        next: () => this.router.navigate(['/projects']),
+        error: (err) => console.error("Erreur update", err)
+      });
     } else {
-      this.projectService.createProject(projectData);
+      this.projectService.createProject(projectData).subscribe({
+        next: () => this.router.navigate(['/projects']),
+        error: (err) => console.error("Erreur création", err)
+      });
     }
-
-    this.router.navigate(['/projects']);
   }
 
   get f() {

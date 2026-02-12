@@ -15,6 +15,7 @@ export class Login implements OnInit {
   password: string = '';
   submitted: boolean = false;
   error: string = '';
+  showPassword: boolean = false;
 
   constructor(
     private auth: Auth,
@@ -26,6 +27,10 @@ export class Login implements OnInit {
     if (this.auth.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
     }
+  }
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
   }
 
   onSubmit(): void {

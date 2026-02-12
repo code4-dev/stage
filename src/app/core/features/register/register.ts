@@ -1,16 +1,25 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.html',
-  styleUrls: ['./register.css']
-  
+  styleUrl: './register.css',
+  imports: [ReactiveFormsModule, CommonModule, RouterLink],
+  standalone: true
 })
-export class RegisterComponent implements OnInit {
+export class Register implements OnInit {
+   private fb = inject(FormBuilder);
+  
   registerForm!: FormGroup;
   submitted = false;
   loading = false;
+
+  // Visibilité des mots de passe
+  showPassword = false;
+  showConfirmPassword = false;
 
   // Pour la barre de force du mot de passe
   passwordStrength = 0;
@@ -27,20 +36,19 @@ export class RegisterComponent implements OnInit {
     noRepetition: false
   };
 
-  constructor(private fb: FormBuilder) {}
-
   ngOnInit(): void {
     this.registerForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(3)]],
+      numero: ['', [Validators.required, Validators.pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/)]], // Ajouté
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
       role: ['chef', Validators.required]
-    }, { validator: this.passwordMatchValidator });
+    }, { validators: this.passwordMatchValidator });
 
-    // Écoute les changements sur le mot de passe pour la barre de force
+    // Écoute les changements sur le mot de passe
     this.registerForm.get('password')?.valueChanges.subscribe(value => {
-      this.evaluatePassword(value);
+      this.evaluatePassword(value || '');
     });
   }
 
@@ -63,8 +71,13 @@ export class RegisterComponent implements OnInit {
       if (control.errors?.['minlength']) return 'Le nom doit contenir au moins 3 caractères';
     }
 
+    if (field === 'numero') {
+      if (control.errors?.['required']) return 'Le numéro est obligatoire';
+      if (control.errors?.['pattern']) return 'Format numéro invalide';
+    }
+
     if (field === 'email') {
-      if (control.errors?.['required']) return 'L’email est obligatoire';
+      if (control.errors?.['required']) return 'L\'email est obligatoire';
       if (control.errors?.['email']) return 'Email invalide';
     }
 
@@ -81,29 +94,38 @@ export class RegisterComponent implements OnInit {
     return '';
   }
 
+  togglePassword() {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPassword() {
+    this.showConfirmPassword = !this.showConfirmPassword;
+  }
+
   evaluatePassword(password: string) {
     this.passwordRequirements.minLength = password.length >= 8;
     this.passwordRequirements.hasUppercase = /[A-Z]/.test(password);
     this.passwordRequirements.hasLowercase = /[a-z]/.test(password);
     this.passwordRequirements.hasNumber = /[0-9]/.test(password);
     this.passwordRequirements.hasSpecial = /[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(password);
-    this.passwordRequirements.noRepetition = !/(.)\1\1/.test(password); // pas de triple répétition
 
-    // Calcul de la force du mot de passe
+    // Calcul de la force (6 critères max)
     let strength = 0;
-    Object.values(this.passwordRequirements).forEach(v => { if (v) strength++; });
+    Object.values(this.passwordRequirements).forEach(v => { 
+      if (v) strength++; 
+    });
     this.passwordStrength = strength;
 
-    // Label et couleur
+    // Label et couleur selon la force
     if (strength <= 2) {
       this.passwordStrengthLabel = 'Faible';
-      this.passwordStrengthColor = 'red';
+      this.passwordStrengthColor = '#dc3545';
     } else if (strength <= 4) {
       this.passwordStrengthLabel = 'Moyen';
-      this.passwordStrengthColor = 'orange';
+      this.passwordStrengthColor = '#ffc107';
     } else {
       this.passwordStrengthLabel = 'Fort';
-      this.passwordStrengthColor = 'green';
+      this.passwordStrengthColor = '#28a745';
     }
   }
 
@@ -112,18 +134,21 @@ export class RegisterComponent implements OnInit {
     if (this.registerForm.valid) {
       this.loading = true;
 
-      // Ici tu peux appeler ton service backend pour créer le compte
-      console.log('Formulaire valide', this.registerForm.value);
+      // TODO: Intégrer AuthService ici
+      console.log('✅ Formulaire valide:', this.registerForm.value);
 
       setTimeout(() => {
         this.loading = false;
-        alert('Compte créé avec succès !');
-        this.registerForm.reset();
+        alert('🎉 Compte créé avec succès !');
+        this.registerForm.reset({ role: 'chef' });
         this.submitted = false;
         this.passwordStrength = 0;
+        this.passwordStrengthLabel = '';
+        this.passwordStrengthColor = 'red';
+        Object.keys(this.passwordRequirements).forEach(key => {
+          this.passwordRequirements[key as keyof typeof this.passwordRequirements] = false;
+        });
       }, 1500);
-    } else {
-      console.log('Formulaire invalide');
     }
   }
 }

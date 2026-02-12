@@ -1,7 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Project, ProjectService } from '../../../../services/project';
+import { ProjectService } from '../../../../services/project';
 
 @Component({
   selector: 'app-projects',
@@ -10,52 +10,50 @@ import { Project, ProjectService } from '../../../../services/project';
   styleUrl: './projects.css',
 })
 export class Projects implements OnInit {
-  private projectService = inject(ProjectService);
+ private projectService = inject(ProjectService);
   
-  projects: Project[] = [];
-  filteredProjects: Project[] = [];
-  filterStatus: string = 'all';
-  searchText: string = '';
+  // 1. On garde uniquement les signaux pour les filtres
+  filterStatus = signal<string>('all');
+  searchText = signal<string>('');
+
+  // 2. Le "computed" s'occupe de TOUT le filtrage automatiquement
+  filteredProjects = computed(() => {
+    const allProjects = this.projectService.getProjects(); // On lit le signal du service
+    const status = this.filterStatus();
+    const search = this.searchText().toLowerCase().trim();
+
+    return allProjects.filter(p => {
+      const matchesStatus = status === 'all' || p.status.toLowerCase() === status.toLowerCase();
+      const matchesSearch = !search || 
+                            p.name.toLowerCase().includes(search) || 
+                            p.description.toLowerCase().includes(search);
+      return matchesStatus && matchesSearch;
+    });
+  });
 
   ngOnInit(): void {
-    this.loadProjects();
+    // 3. On appelle le backend une seule fois au démarrage
+    this.projectService.refreshProjects();
   }
 
-  loadProjects(): void {
-    this.projects = this.projectService.getProjects();
-    this.applyFilters();
-  }
-
-  applyFilters(): void {
-    let filtered = this.projects;
-
-    // Filter by status
-    if (this.filterStatus !== 'all') {
-      filtered = filtered.filter(p => p.status === this.filterStatus);
-    }
-
-    // Filter by search text
-    if (this.searchText.trim()) {
-      const search = this.searchText.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(search) ||
-        p.description.toLowerCase().includes(search)
-      );
-    }
-
-    this.filteredProjects = filtered;
-  }
-
+  // 4. Les actions mettent juste à jour les signaux de filtre
   onFilterChange(status: string): void {
-    this.filterStatus = status;
-    this.applyFilters();
+    this.filterStatus.set(status);
   }
 
-  onSearchChange(text: string): void {
-    this.searchText = text;
-    this.applyFilters();
+  onSearchChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchText.set(value);
   }
 
+  deleteProject(id: string): void {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) {
+      this.projectService.deleteProject(id);
+      // Le signal du service se mettra à jour, donc filteredProjects se recalculera seul.
+    }
+  }
+
+  // 5. Helpers pour l'affichage (assure-toi que les clés correspondent aux données du back)
   getStatusLabel(status: string): string {
     const labels: { [key: string]: string } = {
       'planification': 'Planification',
@@ -63,17 +61,11 @@ export class Projects implements OnInit {
       'termine': 'Terminé',
       'suspendu': 'Suspendu'
     };
-    return labels[status] || status;
+    return labels[status.toLowerCase()] || status;
   }
 
   getStatusClass(status: string): string {
-    return `status-${status}`;
-  }
-
-  deleteProject(id: string): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) {
-      this.projectService.deleteProject(id);
-      this.loadProjects();
-    }
+    // Transforme "En cours" en "en-cours" pour le CSS
+    return `status-${status.toLowerCase().replace(/\s+/g, '-')}`;
   }
 }

@@ -7,7 +7,7 @@ export interface RegisterUser {
   password: string;
   confirmPassword: string;
   fullName: string;
-  role: 'chef' | 'user';
+  role: 'chef' | 'admin' | 'pilote';
 }
 
 export interface User {
@@ -15,7 +15,7 @@ export interface User {
   email: string;
   password: string;
   fullName: string;
-  role: 'chef' | 'user';
+  role: 'chef' | 'admin' | 'pilote';
   createdAt: string;
 }
 

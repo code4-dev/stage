@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable, signal } from '@angular/core';
 
 export interface Project {
   id: string;
@@ -14,112 +15,62 @@ export interface Project {
   providedIn: 'root',
 })
 export class ProjectService {
+  private http = inject(HttpClient); // Injection moderne
+  private readonly API_URL = 'http://localhost:8080/api/projects'; // Ton URL Spring Boot
   private projects = signal<Project[]>([]);
   private currentProject = signal<Project | null>(null);
 
   constructor() {
-    this.loadProjects();
+    this.refreshProjects();
   }
 
-  private loadProjects(): void {
-    const stored = localStorage.getItem('projects');
-    if (stored) {
-      const projects = JSON.parse(stored).map((p: any) => ({
-        ...p,
-        dueDate: new Date(p.dueDate),
-        createdAt: new Date(p.createdAt)
-      }));
-      this.projects.set(projects);
-    } else {
-      // Données de test
-      const mockProjects: Project[] = [
-        {
-          id: '1',
-          name: 'Site Web E-commerce',
-          description: 'Développement du site e-commerce',
-          status: 'En cours',
-          dueDate: new Date('2026-03-31'),
-          createdAt: new Date('2026-01-01'),
-          chefId: '1'
-        },
-        {
-          id: '2',
-          name: 'Application Mobile CRM',
-          description: 'Application mobile pour la gestion CRM',
-          status: 'Planification',
-          dueDate: new Date('2026-06-30'),
-          createdAt: new Date('2026-01-05'),
-          chefId: '1'
-        },
-        {
-          id: '3',
-          name: 'Système de Reporting',
-          description: 'Mise en place du système de reporting',
-          status: 'Suspendu',
-          dueDate: new Date('2026-05-15'),
-          createdAt: new Date('2025-12-01'),
-          chefId: '1'
-        }
-      ];
-      this.projects.set(mockProjects);
-      this.saveProjects();
-    }
+  private refreshProjects(): void {
+    this.http.get<Project[]>(this.API_URL).subscribe({
+      next: (data) => this.projects.set(data),
+      error: (err) => console.error('Erreur lors du chargement des projets', err)
+    });
   }
+  
 
   private saveProjects(): void {
     localStorage.setItem('projects', JSON.stringify(this.projects()));
   }
 
-  getProjects(): Project[] {
-    return this.projects();
-  }
+
 
   getProjectById(id: string): Project | undefined {
     return this.projects().find(p => p.id === id);
   }
 
-  createProject(project: Omit<Project, 'id' | 'createdAt'>): Project {
-    const newProject: Project = {
-      ...project,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    this.projects.set([...this.projects(), newProject]);
-    this.saveProjects();
-    return newProject;
-  }
-
-  updateProject(id: string, updates: Partial<Project>): Project | null {
-    const projects = this.projects();
-    const index = projects.findIndex(p => p.id === id);
-    if (index !== -1) {
-      projects[index] = { ...projects[index], ...updates };
-      this.projects.set([...projects]);
-      this.saveProjects();
-      return projects[index];
+  createProject(project: Omit<Project, 'id' | 'createdAt'>) {
+      return this.http.post<Project>(this.API_URL, project).subscribe({
+        next: () => this.refreshProjects() // On rafraîchit la liste après ajout
+      });
     }
-    return null;
-  }
+
+  updateProject(id: string, updates: Partial<Project>) {
+      return this.http.put<Project>(`${this.API_URL}/${id}`, updates).subscribe({
+        next: () => this.refreshProjects()
+      });
+    }
 
   deleteProject(id: string): void {
-    this.projects.set(this.projects().filter(p => p.id !== id));
-    this.saveProjects();
+    this.http.delete(`${this.API_URL}/${id}`).subscribe({
+      next: () => this.refreshProjects()
+    });
   }
 
-  setCurrentProject(project: Project | null): void {
-    this.currentProject.set(project);
-  }
+// Getters pour les Signals
+  getProjects() { return this.projects(); }
+  getCurrentProject() { return this.currentProject(); }
 
-  getCurrentProject(): Project | null {
-    return this.currentProject();
-  }
-
+// Stats (calculées à partir du signal mis à jour par le back)
   getProjectsStats() {
     const projects = this.projects();
     return {
       total: projects.length,
       enCours: projects.filter(p => p.status === 'En cours').length,
-      termines: projects.filter(p => p.status === 'Terminé').length,
+      termine: projects.filter(p => p.status === 'Terminé').length,
       planification: projects.filter(p => p.status === 'Planification').length
     };
   }
