@@ -218,7 +218,7 @@ Les champs sont pré-remplis avec les données existantes
 1. **Backend API** : Remplacer localStorage par des appels HTTP
 2. **Authentification** : Intégrer un vrai système d'authentification (OAuth, JWT)
 3. **Permissions** : Ajouter des contrôles d'accès basés sur les rôles
-4. **Base de données** : Persistence persistante avec une BDD (PostgreSQL, MongoDB)
+4. **Base de données** : Persistence persistante avec une BDD MongoDB
 5. **Notifications** : Notifications en temps réel pour les mises à jour
 6. **Export** : Export des données (PDF, Excel)
 7. **Commentaires** : Système de commentaires sur les suivis

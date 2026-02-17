@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+﻿import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -15,16 +15,16 @@ export class ProjectForm implements OnInit {
   private projectService = inject(ProjectService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  
+
   projectForm!: FormGroup;
-  isEditing: boolean = false;
+  isEditing = false;
   projectId: string | null = null;
-  submitted: boolean = false;
+  submitted = false;
   statusOptions = [
     { value: 'planification', label: 'Planification' },
     { value: 'en-cours', label: 'En cours' },
-    { value: 'termine', label: 'Terminé' },
-    { value: 'suspendu', label: 'Suspendu' }
+    { value: 'termine', label: 'Termine' },
+    { value: 'suspendu', label: 'Suspendu' },
   ];
 
   constructor() {
@@ -44,25 +44,22 @@ export class ProjectForm implements OnInit {
       name: ['', [Validators.required, Validators.minLength(3)]],
       description: ['', [Validators.required, Validators.minLength(10)]],
       status: ['planification', Validators.required],
-      dueDate: ['', Validators.required]
+      dueDate: ['', Validators.required],
     });
   }
 
   private loadProject(id: string): void {
-    // MODIFICATION : On appelle le service qui fait un appel HTTP GET
-    this.projectService.getProjectById(id).subscribe({
+    this.projectService.getProjectByIdFromApi(id).subscribe({
       next: (project) => {
-        if (project) {
-          const dueDateStr = new Date(project.dueDate).toISOString().split('T')[0];
-          this.projectForm.patchValue({
-            name: project.name,
-            description: project.description,
-            status: project.status,
-            dueDate: dueDateStr
-          });
-        }
+        const dueDateStr = new Date(project.dueDate).toISOString().split('T')[0];
+        this.projectForm.patchValue({
+          name: project.name,
+          description: project.description,
+          status: project.status,
+          dueDate: dueDateStr,
+        });
       },
-      error: (err) => console.error("Erreur de chargement", err)
+      error: (err: unknown) => console.error('Erreur de chargement', err),
     });
   }
 
@@ -77,20 +74,19 @@ export class ProjectForm implements OnInit {
       name: formValue.name,
       description: formValue.description,
       status: formValue.status,
-      dueDate: new Date(formValue.dueDate),
-      chefId: '1'
+      dueDate: formValue.dueDate,
+      chefId: '1',
     };
 
-// MODIFICATION : On s'abonne (.subscribe) pour attendre que le Back enregistre
     if (this.isEditing && this.projectId) {
       this.projectService.updateProject(this.projectId, projectData).subscribe({
         next: () => this.router.navigate(['/projects']),
-        error: (err) => console.error("Erreur update", err)
+        error: (err: unknown) => console.error('Erreur update', err),
       });
     } else {
       this.projectService.createProject(projectData).subscribe({
         next: () => this.router.navigate(['/projects']),
-        error: (err) => console.error("Erreur création", err)
+        error: (err: unknown) => console.error('Erreur creation', err),
       });
     }
   }

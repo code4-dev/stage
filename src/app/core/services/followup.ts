@@ -38,7 +38,7 @@ export class FollowupService {
           id: '1',
           projectId: '1',
           title: 'Mise en place de la base de données',
-          description: 'Configuration initiale de la base de données PostgreSQL',
+          description: 'Configuration initiale de la base de données MongoDB',
           progress: 80,
           issues: 'Quelques problèmes de performance identifiés',
           decisions: 'Utilisation d\'une stratégie d\'indexation optimisée',

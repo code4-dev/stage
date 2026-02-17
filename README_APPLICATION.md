@@ -152,7 +152,7 @@ Les fichiers compilés seront dans le dossier `dist/`
   id: '1',
   projectId: '1',
   title: 'Mise en place de la base de données',
-  description: 'Configuration initiale de PostgreSQL',
+  description: 'Configuration initiale de MongoDB',
   progress: 80,
   issues: 'Problèmes de performance identifiés',
   decisions: 'Mise en place d\'une stratégie d\'indexation',

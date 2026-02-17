@@ -1,7 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-register',
@@ -11,22 +12,22 @@ import { RouterLink } from '@angular/router';
   standalone: true
 })
 export class Register implements OnInit {
-   private fb = inject(FormBuilder);
-  
+  private fb = inject(FormBuilder);
+  private auth = inject(Auth);
+  private router = inject(Router);
+
   registerForm!: FormGroup;
   submitted = false;
   loading = false;
+  error = '';
 
-  // Visibilité des mots de passe
   showPassword = false;
   showConfirmPassword = false;
 
-  // Pour la barre de force du mot de passe
   passwordStrength = 0;
   passwordStrengthLabel = '';
   passwordStrengthColor = 'red';
 
-  // Vérification des règles du mot de passe
   passwordRequirements = {
     minLength: false,
     hasUppercase: false,
@@ -39,14 +40,13 @@ export class Register implements OnInit {
   ngOnInit(): void {
     this.registerForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(3)]],
-      numero: ['', [Validators.required, Validators.pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/)]], // Ajouté
+      numero: ['', [Validators.required, Validators.pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
       role: ['chef', Validators.required]
     }, { validators: this.passwordMatchValidator });
 
-    // Écoute les changements sur le mot de passe
     this.registerForm.get('password')?.valueChanges.subscribe(value => {
       this.evaluatePassword(value || '');
     });
@@ -68,22 +68,22 @@ export class Register implements OnInit {
 
     if (field === 'fullName') {
       if (control.errors?.['required']) return 'Le nom complet est obligatoire';
-      if (control.errors?.['minlength']) return 'Le nom doit contenir au moins 3 caractères';
+      if (control.errors?.['minlength']) return 'Le nom doit contenir au moins 3 caracteres';
     }
 
     if (field === 'numero') {
-      if (control.errors?.['required']) return 'Le numéro est obligatoire';
-      if (control.errors?.['pattern']) return 'Format numéro invalide';
+      if (control.errors?.['required']) return 'Le numero est obligatoire';
+      if (control.errors?.['pattern']) return 'Format numero invalide';
     }
 
     if (field === 'email') {
-      if (control.errors?.['required']) return 'L\'email est obligatoire';
+      if (control.errors?.['required']) return 'L email est obligatoire';
       if (control.errors?.['email']) return 'Email invalide';
     }
 
     if (field === 'password') {
       if (control.errors?.['required']) return 'Le mot de passe est obligatoire';
-      if (control.errors?.['minlength']) return 'Minimum 8 caractères';
+      if (control.errors?.['minlength']) return 'Minimum 8 caracteres';
     }
 
     if (field === 'confirmPassword') {
@@ -109,14 +109,12 @@ export class Register implements OnInit {
     this.passwordRequirements.hasNumber = /[0-9]/.test(password);
     this.passwordRequirements.hasSpecial = /[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(password);
 
-    // Calcul de la force (6 critères max)
     let strength = 0;
-    Object.values(this.passwordRequirements).forEach(v => { 
-      if (v) strength++; 
+    Object.values(this.passwordRequirements).forEach(v => {
+      if (v) strength++;
     });
     this.passwordStrength = strength;
 
-    // Label et couleur selon la force
     if (strength <= 2) {
       this.passwordStrengthLabel = 'Faible';
       this.passwordStrengthColor = '#dc3545';
@@ -131,24 +129,35 @@ export class Register implements OnInit {
 
   onSubmit() {
     this.submitted = true;
-    if (this.registerForm.valid) {
-      this.loading = true;
+    this.error = '';
 
-      // TODO: Intégrer AuthService ici
-      console.log('✅ Formulaire valide:', this.registerForm.value);
-
-      setTimeout(() => {
-        this.loading = false;
-        alert('🎉 Compte créé avec succès !');
-        this.registerForm.reset({ role: 'chef' });
-        this.submitted = false;
-        this.passwordStrength = 0;
-        this.passwordStrengthLabel = '';
-        this.passwordStrengthColor = 'red';
-        Object.keys(this.passwordRequirements).forEach(key => {
-          this.passwordRequirements[key as keyof typeof this.passwordRequirements] = false;
-        });
-      }, 1500);
+    if (!this.registerForm.valid) {
+      return;
     }
+
+    this.loading = true;
+    const payload = {
+      fullName: this.registerForm.value.fullName,
+      email: this.registerForm.value.email,
+      password: this.registerForm.value.password,
+      role: this.registerForm.value.role
+    };
+
+    this.auth.register(payload).subscribe({
+      next: () => {
+        this.loading = false;
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.loading = false;
+        if (err?.status === 409) {
+          this.error = 'Cet email est deja utilise';
+        } else if (err?.status === 400) {
+          this.error = 'Donnees invalides';
+        } else {
+          this.error = 'Echec de creation du compte';
+        }
+      }
+    });
   }
 }

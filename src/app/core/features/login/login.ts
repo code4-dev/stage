@@ -15,6 +15,7 @@ export class Login implements OnInit {
   password: string = '';
   submitted: boolean = false;
   error: string = '';
+  loading: boolean = false;
   showPassword: boolean = false;
 
   constructor(
@@ -23,7 +24,6 @@ export class Login implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
     if (this.auth.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
     }
@@ -42,10 +42,16 @@ export class Login implements OnInit {
       return;
     }
 
-    // Authentification simple (démonstration)
-    if (this.email && this.password) {
-      this.auth.login(this.email, this.password);
-      this.router.navigate(['/dashboard']);
-    }
+    this.loading = true;
+    this.auth.login(this.email, this.password).subscribe({
+      next: () => {
+        this.loading = false;
+        this.router.navigate(['/dashboard']);
+      },
+      error: () => {
+        this.loading = false;
+        this.error = 'Email ou mot de passe invalide';
+      }
+    });
   }
 }

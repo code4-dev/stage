@@ -1,13 +1,14 @@
-import { HttpClient } from '@angular/common/http';
+﻿import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 
 export interface Project {
   id: string;
   name: string;
   description: string;
-  status: 'En cours' | 'Terminé' | 'Planification' | 'Suspendu';
-  dueDate: Date;
-  createdAt: Date;
+  status: 'planification' | 'en-cours' | 'termine' | 'suspendu';
+  dueDate: string;
+  createdAt: string;
   chefId: string;
 }
 
@@ -15,8 +16,8 @@ export interface Project {
   providedIn: 'root',
 })
 export class ProjectService {
-  private http = inject(HttpClient); // Injection moderne
-  private readonly API_URL = 'http://localhost:8080/api/projects'; // Ton URL Spring Boot
+  private http = inject(HttpClient);
+  private readonly API_URL = 'http://localhost:8080/api/projects';
   private projects = signal<Project[]>([]);
   private currentProject = signal<Project | null>(null);
 
@@ -24,54 +25,54 @@ export class ProjectService {
     this.refreshProjects();
   }
 
-  private refreshProjects(): void {
+  refreshProjects(): void {
     this.http.get<Project[]>(this.API_URL).subscribe({
       next: (data) => this.projects.set(data),
-      error: (err) => console.error('Erreur lors du chargement des projets', err)
+      error: (err) => console.error('Erreur lors du chargement des projets', err),
     });
   }
-  
-
-  private saveProjects(): void {
-    localStorage.setItem('projects', JSON.stringify(this.projects()));
-  }
-
-
 
   getProjectById(id: string): Project | undefined {
-    return this.projects().find(p => p.id === id);
+    return this.projects().find((p) => p.id === id);
   }
 
-  createProject(project: Omit<Project, 'id' | 'createdAt'>) {
-      return this.http.post<Project>(this.API_URL, project).subscribe({
-        next: () => this.refreshProjects() // On rafraîchit la liste après ajout
-      });
-    }
+  getProjectByIdFromApi(id: string): Observable<Project> {
+    return this.http.get<Project>(`${this.API_URL}/${id}`);
+  }
 
-  updateProject(id: string, updates: Partial<Project>) {
-      return this.http.put<Project>(`${this.API_URL}/${id}`, updates).subscribe({
-        next: () => this.refreshProjects()
-      });
-    }
+  createProject(project: Omit<Project, 'id' | 'createdAt'>): Observable<Project> {
+    return this.http.post<Project>(this.API_URL, project).pipe(
+      tap(() => this.refreshProjects())
+    );
+  }
+
+  updateProject(id: string, updates: Partial<Project>): Observable<Project> {
+    return this.http.put<Project>(`${this.API_URL}/${id}`, updates).pipe(
+      tap(() => this.refreshProjects())
+    );
+  }
 
   deleteProject(id: string): void {
-    this.http.delete(`${this.API_URL}/${id}`).subscribe({
-      next: () => this.refreshProjects()
+    this.http.delete<void>(`${this.API_URL}/${id}`).subscribe({
+      next: () => this.refreshProjects(),
     });
   }
 
-// Getters pour les Signals
-  getProjects() { return this.projects(); }
-  getCurrentProject() { return this.currentProject(); }
+  getProjects() {
+    return this.projects();
+  }
 
-// Stats (calculées à partir du signal mis à jour par le back)
+  getCurrentProject() {
+    return this.currentProject();
+  }
+
   getProjectsStats() {
     const projects = this.projects();
     return {
       total: projects.length,
-      enCours: projects.filter(p => p.status === 'En cours').length,
-      termine: projects.filter(p => p.status === 'Terminé').length,
-      planification: projects.filter(p => p.status === 'Planification').length
+      enCours: projects.filter((p) => p.status === 'en-cours').length,
+      termines: projects.filter((p) => p.status === 'termine').length,
+      planification: projects.filter((p) => p.status === 'planification').length,
     };
   }
 }
